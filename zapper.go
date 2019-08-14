@@ -88,7 +88,9 @@ func (z *zapper) pipe() error {
 		})
 
 		if err != nil {
-			fmt.Fprintf(z.writer, "Error: %s\n", err)
+			fmt.Fprintf(z.writer,
+				"skipping: %s"+
+					"   error: %s\n", input, err)
 			continue
 		}
 
