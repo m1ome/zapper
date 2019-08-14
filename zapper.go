@@ -10,12 +10,16 @@ import (
 
 	"github.com/buger/jsonparser"
 	"github.com/fatih/color"
-	"sort"
 )
 
 type zapper struct {
 	reader *bufio.Reader
 	writer io.Writer
+}
+
+type kv struct {
+	key   string
+	value string
 }
 
 type entry struct {
@@ -24,7 +28,7 @@ type entry struct {
 	caller  string
 	ts      string
 	trace   []string
-	fields  map[string]interface{}
+	fields  []kv
 }
 
 type options struct {
@@ -46,7 +50,7 @@ func (z *zapper) pipe() error {
 		}
 
 		entry := &entry{
-			fields: make(map[string]interface{}),
+			fields: []kv{},
 		}
 
 		// Skip empty log lines..
@@ -81,7 +85,7 @@ func (z *zapper) pipe() error {
 					entry.trace = strings.Split(trace, "\n")
 				}
 			default:
-				entry.fields[jsonString(key)] = jsonString(value)
+				entry.fields = append(entry.fields, kv{jsonString(key), jsonString(value)})
 			}
 
 			return nil
@@ -139,14 +143,19 @@ func (z *zapper) write(e *entry) {
 
 	if len(e.fields) > 0 {
 		fmt.Fprintf(z.writer, "\t%s", color.New(color.Bold, color.FgGreen).Sprint("Fields:\n"))
-		keys := make([]string, 0, len(e.fields))
-		for key := range e.fields {
-			keys = append(keys, key)
+		maxLen := 0
+		for _, kv := range e.fields {
+			maxLen = max(maxLen, len(kv.key))
 		}
-		sort.Strings(keys)
 
-		for _, k := range keys {
-			fmt.Fprintf(z.writer, "\t\t%s: %v\n", color.New(color.Bold).Sprint(k), color.New(color.Italic).Sprint(e.fields[k]))
+		for _, kv := range e.fields {
+			value := kv.value
+			valueLines := strings.Split(value, "\n")
+
+			fmt.Fprintf(z.writer, "\t\t%s: %v\n", color.New(color.Bold).Sprint(pad(kv.key, maxLen)), color.New(color.Italic).Sprint(valueLines[0]))
+			for _, line := range valueLines[1:] {
+				fmt.Fprintf(z.writer, "\t\t%s| %v\n", color.New(color.Bold).Sprint(pad("", maxLen)), color.New(color.Italic).Sprint(line))
+			}
 		}
 	}
 
@@ -156,4 +165,15 @@ func (z *zapper) write(e *entry) {
 			fmt.Fprintf(z.writer, "\t\t%s\n", color.New(color.Faint).Sprint(tr))
 		}
 	}
+}
+
+func pad(value string, size int) string {
+	return fmt.Sprintf("%"+fmt.Sprint(size)+"s", value)
+}
+
+func max(x, y int) int {
+	if x < y {
+		return y
+	}
+	return x
 }
