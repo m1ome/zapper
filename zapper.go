@@ -59,13 +59,13 @@ func (z *zapper) pipe() error {
 			switch string(key) {
 			case "level":
 				// Binding level
-				entry.level = string(value)
+				entry.level = jsonString(value)
 			case "msg":
 				// Binding message
-				entry.message = string(value)
+				entry.message = jsonString(value)
 			case "ts":
 				// Binding timestamp
-				ts, err := strconv.ParseFloat(string(value), 64)
+				ts, err := strconv.ParseFloat(jsonString(value), 64)
 				if err != nil {
 					return err
 				}
@@ -73,15 +73,15 @@ func (z *zapper) pipe() error {
 				entry.ts = time.Unix(int64(ts), 0).Format("2006-01-02T15:04:05.999Z")
 			case "caller":
 				// Binding caller
-				entry.caller = string(value)
+				entry.caller = jsonString(value)
 			case "stacktrace":
 				// Binding trace
-				trace := string(value)
+				trace := jsonString(value)
 				if len(trace) > 0 {
-					entry.trace = strings.Split(trace, `\n`)
+					entry.trace = strings.Split(trace, "\n")
 				}
 			default:
-				entry.fields[string(key)] = string(value)
+				entry.fields[jsonString(key)] = jsonString(value)
 			}
 
 			return nil
@@ -98,6 +98,14 @@ func (z *zapper) pipe() error {
 	}
 
 	return nil
+}
+
+func jsonString(value []byte) string {
+	v := string(value)
+	v = strings.Replace(v, "\\\"", "\"", -1)
+	v = strings.Replace(v, "\\t", "\t", -1)
+	v = strings.Replace(v, "\\n", "\n", -1)
+	return v
 }
 
 func (z *zapper) write(e *entry) {
@@ -138,7 +146,7 @@ func (z *zapper) write(e *entry) {
 		sort.Strings(keys)
 
 		for _, k := range keys {
-			fmt.Fprintf(z.writer, "\t\t%s:%v\n", color.New(color.Bold).Sprint(k), color.New(color.Italic).Sprint(e.fields[k]))
+			fmt.Fprintf(z.writer, "\t\t%s: %v\n", color.New(color.Bold).Sprint(k), color.New(color.Italic).Sprint(e.fields[k]))
 		}
 	}
 
