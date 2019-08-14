@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
-	"bufio"
 )
 
 func main() {
@@ -23,9 +23,8 @@ func main() {
 		fmt.Println("  cat yourlogfile.log | zapper")
 	} else if info.Size() > 0 {
 		reader := bufio.NewReader(os.Stdin)
-		writer := bufio.NewWriter(os.Stdout)
 
-		zap := zapper{reader, writer}
+		zap := zapper{reader, os.Stdout}
 		zap.pipe()
 
 		if os.Getenv("TESTING") == "" {
