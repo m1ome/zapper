@@ -49,6 +49,11 @@ func (z *zapper) pipe() error {
 			fields: make(map[string]interface{}),
 		}
 
+		// Skip empty log lines..
+		if len(strings.TrimSpace(string(input))) == 0 {
+			continue
+		}
+
 		// Parsing entry object
 		err = jsonparser.ObjectEach(input, func(key []byte, value []byte, dataType jsonparser.ValueType, offset int) error {
 			switch string(key) {
